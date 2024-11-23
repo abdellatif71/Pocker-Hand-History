@@ -64,7 +64,6 @@
     document.getElementById("convertBtn").addEventListener("click", () => {
       const handHistory = document.getElementById("handHistory").value;
 
-      // Funktion zum Parsen der Hand-History und Generieren des XMLs
       const convertToXML = (handHistory) => {
         const xmlDoc = document.implementation.createDocument(null, "session", null);
         const sessionElement = xmlDoc.documentElement;
@@ -91,7 +90,6 @@
         return new XMLSerializer().serializeToString(xmlDoc);
       };
 
-      // Konvertieren und Ausgabe
       const xmlOutput = convertToXML(handHistory);
       document.getElementById("output").textContent = xmlOutput;
     });
