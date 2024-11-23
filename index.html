@@ -72,7 +72,7 @@
         const gameElement = xmlDoc.createElement("game");
         gameElement.setAttribute("gamecode", "987654321"); // Beispielwert
 
-        // Beispiel-Parsing: Spieler extrahieren (dummy-daten für Demonstration)
+      
         const playersElement = xmlDoc.createElement("players");
         const playerLines = handHistory.split("\n").filter(line => line.startsWith("Player:"));
         playerLines.forEach((line, index) => {
