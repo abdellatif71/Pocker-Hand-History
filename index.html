@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poker Hand History to XML</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f8f9fa;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      resize: none;
+    }
+    button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 16px;
+      color: #fff;
+      background: #007bff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    pre {
+      background: #f1f1f1;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 14px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Poker Hand History to XML Converter</h2>
+    <textarea id="handHistory" placeholder="Füge hier deine Poker-Hand-History ein..."></textarea>
+    <button id="convertBtn">Konvertieren in XML</button>
+    <h3>Generiertes XML:</h3>
+    <pre id="output"></pre>
+  </div>
+
+  <script>
+    document.getElementById("convertBtn").addEventListener("click", () => {
+      const handHistory = document.getElementById("handHistory").value;
+
+      // Funktion zum Parsen der Hand-History und Generieren des XMLs
+      const convertToXML = (handHistory) => {
+        const xmlDoc = document.implementation.createDocument(null, "session", null);
+        const sessionElement = xmlDoc.documentElement;
+        sessionElement.setAttribute("sessioncode", "123456789"); // Beispielwert
+
+        const gameElement = xmlDoc.createElement("game");
+        gameElement.setAttribute("gamecode", "987654321"); // Beispielwert
+
+        // Beispiel-Parsing: Spieler extrahieren (dummy-daten für Demonstration)
+        const playersElement = xmlDoc.createElement("players");
+        const playerLines = handHistory.split("\n").filter(line => line.startsWith("Player:"));
+        playerLines.forEach((line, index) => {
+          const playerData = line.split(",");
+          const playerElement = xmlDoc.createElement("player");
+          playerElement.setAttribute("seat", index + 1);
+          playerElement.setAttribute("chips", playerData[1] || "0");
+          playerElement.setAttribute("name", playerData[0].split(":")[1].trim());
+          playersElement.appendChild(playerElement);
+        });
+
+        gameElement.appendChild(playersElement);
+        sessionElement.appendChild(gameElement);
+
+        return new XMLSerializer().serializeToString(xmlDoc);
+      };
+
+      // Konvertieren und Ausgabe
+      const xmlOutput = convertToXML(handHistory);
+      document.getElementById("output").textContent = xmlOutput;
+    });
+  </script>
+</body>
+</html>
