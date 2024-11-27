@@ -2,10 +2,6 @@
 
 This project is a simple web application that converts poker hand histories into XML format. It is ideal for analyzing poker sessions or processing the data in other systems.
 
-## 🛠️ Features
-- User-friendly interface for entering poker hand histories.
-- Automatic conversion of hand histories to XML format.
-- Display of the generated XML code directly in the browser.
 
 ## 📋 Requirements
 You only need a web browser to use this application.
