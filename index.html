@@ -119,18 +119,21 @@
             }
             playerIndex++;
         }
-    
-        const dealerMatch = lines[playerIndex]?.match(/(.+) has the dealer button/);
-        if (!dealerMatch) {
-            return 'Error: Dealer information not found.';
-        }
-        const dealer = dealerMatch[1];
-        playerIndex++;
-        const playersWithDealer = players.map(player => ({
+    //DEALER code hier>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    const dealerMatch = lines[playerIndex]?.match(/^(.+?) has the dealer button$/);
+if (!dealerMatch) {
+    console.error("Error: Dealer information not found in line:", lines[playerIndex]);
+    return 'Error: Dealer information not found.';
+}
+
+const dealer = dealerMatch[1].trim(); // Extrahierter Dealer-Name
+playerIndex++;
+
+const playersWithDealer = players.map(player => ({
     ...player,
-    dealer: player.name === dealer ? '1' : '0'
+    dealer: player.name.trim() === dealer.trim() ? '1' : '0' // Vergleiche mit Trim
 }));
-    
+    //end DEALER
         const smallBlindMatch = lines[playerIndex]?.match(/(.+) posts small blind (\d+)/);
         const bigBlindMatch = lines[playerIndex + 1]?.match(/(.+) posts big blind (\d+)/);
         if (!smallBlindMatch || !bigBlindMatch) {
@@ -283,7 +286,7 @@ function parseSummary(lines) {
     const rakeMatch = summaryLines.find(line => line.includes('Rake:')).match(/Rake: (\d+)/);
 
     // Sitzpattern für Spieler und Aktionen.
-    const seatPattern = /^Seat (\d+): (\S+) \(([-+]?\d+)\) \[([^\]]+)\] (Folded on (PreFlop)|Showdown with .*)$/;
+    const seatPattern = /^Seat (\d+): (\S+) \(([-+]?\d+)\) \[([^\]]+)\] (Folded on (PreFlop)|Folded on (Flop)|Won without Showdown|Showdown with .*)$/;
 
     const seatLines = summaryLines.filter(line => seatPattern.test(line));
 
@@ -355,12 +358,13 @@ const xml = `<?xml version="1.0" encoding="utf-8" ?>
     </general>
     <game gamecode="${handId}">
         <general>
-            <startdate>${date}</startdate>
+            <startdate>${date}</startdate> 
+            
             <players>
-                ${players.map(player => `
-                    <player seat="${player.seat}" chips="${player.chips}" win="0" bet="0" name="${player.name}" dealer="${player.dealer}"></player>
-                `).join('')}
-            </players>
+        ${playersWithDealer.map(player => `
+            <player seat="${player.seat}" chips="${player.chips}" win="0" bet="0" name="${player.name}" dealer="${player.dealer}"></player>
+        `).join('')}
+    </players>
         </general>
         <round no="0">
             <action player="${smallBlind[1]}" cards="" no="1" sum="${smallBlind[2]}" type="1"></action>
@@ -385,6 +389,7 @@ const xml = `<?xml version="1.0" encoding="utf-8" ?>
 console.log(xml);  // Ausgabe der XML
 
 return xml;
+
 
     }
   </script>
