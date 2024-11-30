@@ -229,14 +229,112 @@ const roundOutput = rounds.map(round => {
     `;
 }).join('');
 
-// Ausgabe anzeigen
-console.log(roundOutput);
+// Hole Cards Parsing hinzufügen
+const holeCardsStartIndex = lines.findIndex(line => line.startsWith('** Hole Cards **'));
+if (holeCardsStartIndex === -1) {
+    return 'Error: Hole cards information not found.';
+}
+
+playerIndex = holeCardsStartIndex + 1; // Nach der Hole-Cards-Linie beginnen
+players.forEach(player => {
+    // Suche nach Karteninformationen für jeden Spieler
+    const holeCardsMatch = lines[playerIndex]?.match(new RegExp(`${player.name}: \\[(.+)\\]`));
+    if (holeCardsMatch) {
+        player.cards = holeCardsMatch[1]; // Karten des Spielers speichern
+    } else {
+        player.cards = 'N/A'; // Standardwert, falls keine Karten gefunden werden
+    }
+    playerIndex++;
+});
+
+// Spieler- und Karteninformationen in Aktionen einfügen
+//const actions = [];
+while (lines[playerIndex] && !lines[playerIndex].startsWith('** Flop **')) {
+    const actionMatch = lines[playerIndex].match(/(.+) (folds|calls|raises|bets|checks) ?(\d+)?/);
+    if (actionMatch) {
+        const playerName = actionMatch[1];
+        const player = players.find(p => p.name === playerName);
+        actions.push({
+            player: playerName,
+            action: actionMatch[2],
+            amount: actionMatch[3] || 0, // Falls keine Summe vorhanden ist, setze sie auf 0
+            cards: player ? player.cards : 'N/A' // Karten des Spielers hinzufügen
+        });
+    }
+    playerIndex++;
+}
+function parseSummary(lines) {
+    // Sucht nach der Zeile, die mit '** Summary **' beginnt und gibt deren Index zurück.
+    const summaryIndex = lines.findIndex(line => line.startsWith('** Summary **'));
+
+    // Wenn '** Summary **' nicht gefunden wird, gibt die Funktion 'null' zurück.
+    if (summaryIndex === -1) {
+        return null;
+    }
+
+    // Extrahiert die Zeilen, die nach der Zeile mit '** Summary **' kommen.
+    const summaryLines = lines.slice(summaryIndex + 1);
+
+    const boardMatch = summaryLines.find(line => line.includes('Board:')).match(/Board: \[(.+)\]/);
+    const rabbitMatch = summaryLines.find(line => line.includes('Rabbit:')).match(/Rabbit: \[(.+)\]/);
+    const playersMatch = summaryLines.find(line => line.includes('Players:')).match(/Players: (\d+)/);
+    const potsMatch = summaryLines.find(line => line.includes('Pots:')).match(/Pots: (\d+)/);
+    const totalMatch = summaryLines.find(line => line.includes('Total:')).match(/Total: (\d+)/);
+    const rakeMatch = summaryLines.find(line => line.includes('Rake:')).match(/Rake: (\d+)/);
+
+    // Sitzpattern für Spieler und Aktionen.
+    const seatPattern = /^Seat (\d+): (\S+) \(([-+]?\d+)\) \[([^\]]+)\] (Folded on (PreFlop)|Showdown with .*)$/;
+
+    const seatLines = summaryLines.filter(line => seatPattern.test(line));
+
+    const seats = seatLines.map(line => {
+        const match = line.match(seatPattern);
+        return {
+            seat: match[1],         // Sitznummer
+            player: match[2],       // Spielername
+            netChange: match[3],    // Netto-Gewinn oder -Verlust
+            cards: match[4],        // Karten des Spielers
+            action: match[5]        // Aktion des Spielers (Folded oder Showdown)
+        };
+    });
+
+    // Gibt ein Objekt zurück, das die extrahierten Werte enthält.
+    return {
+        board: boardMatch ? boardMatch[1] : 'N/A',  // Wenn 'Board:' gefunden wird, gebe den Wert zurück, andernfalls 'N/A'.
+        rabbit: rabbitMatch ? rabbitMatch[1] : 'N/A',  // Wenn 'Rabbit:' gefunden wird, gebe den Wert zurück, andernfalls 'N/A'.
+        players: playersMatch ? playersMatch[1] : 'N/A',  // Wenn 'Players:' gefunden wird, gebe die Spieleranzahl zurück, andernfalls 'N/A'.
+        pots: potsMatch ? potsMatch[1] : 'N/A',  // Wenn 'Pots:' gefunden wird, gebe die Potsanzahl zurück, andernfalls 'N/A'.
+        total: totalMatch ? totalMatch[1] : 'N/A',  // Wenn 'Total:' gefunden wird, gebe den Gesamtbetrag zurück, andernfalls 'N/A'.
+        rake: rakeMatch ? rakeMatch[1] : 'N/A',  // Wenn 'Rake:' gefunden wird, gebe den Rake-Betrag zurück, andernfalls 'N/A'.
+        seats: seats // Hier werden die Sitzinformationen zurückgegeben
+    };
+}
+
+const summaryData = parseSummary(lines);
+const seats = summaryData.seats
+
+// Vorherigen Code, um die Aktionen zu generieren
+const actionsOutput = actions.map((action, index) => {
+    const playerName = action.player;
+    const actionType = getActionType(action.action); // Typ wie "Raise", "Call", etc.
+    const cards = action.cards ? action.cards : 'N/A'; // Falls keine Karten vorhanden sind, setze 'N/A'
+
+    // Finde den Spieler in der `seats`-Datenstruktur
+    const playerSeat = seats.find(seat => seat.player === playerName);
+    
+    // Hole die Karten des Spielers oder setze 'N/A' wenn keine gefunden wurden
+    const playerCards = playerSeat && playerSeat.cards ? playerSeat.cards : 'N/A';
+
+    return `
+      <action player="${playerName}" no="${index + 1}" sum="€${action.amount}" type="${actionType}"></action>
+      <cards player="${playerName}" type="Pocket">${playerCards}</cards>
+    `;
+}).join('');
 
 
-        
-        // Construct the XML
-        const xml = `<?xml version="1.0" encoding="utf-8" ?>
-    <session sessioncode="${handId}">
+// Die endgültige XML-Ausgabe
+const xml = `<?xml version="1.0" encoding="utf-8" ?>
+<session sessioncode="${handId}">
     <general>
         <mode>real</mode>
         <gametype>${gameType}</gametype>
@@ -258,32 +356,20 @@ console.log(roundOutput);
     <game gamecode="${handId}">
         <general>
             <startdate>${date}</startdate>
-    <players>
-   ${players.map(player => `
-    <player seat="${player.seat}" chips="${player.chips}" win="0" bet="0" name="${player.name}" dealer="${player.dealer}"></player>
-    `).join('')}
-    </players>
-    </general>
-    <round no="0">
-    <action player="${smallBlind[1]}" cards="" no="1" sum="${smallBlind[2]}" type="1"></action>
-    <action player="${bigBlind[1]}" cards="" no="2" sum="${bigBlind[2]}" type="2"></action>
-  </round>
-<round no="1">
-  ${actions.map((action, index) => {
-    const playerName = action.player;
-    const actionType = getActionType(action.action); // Typ wie "Raise", "Call", etc.
-    const cards = action.cards || 'N/A'; // Karten verwenden, falls vorhanden
-
-    return `
-      <action player="${playerName}" no="${index + 1}" sum="€${action.amount}" type="${actionType}"></action>
-      <cards player="${playerName}" type="Pocket">${cards}</cards>
-    `;
-  }).join('')}
-</round>
-
-
-
-
+            <players>
+                ${players.map(player => `
+                    <player seat="${player.seat}" chips="${player.chips}" win="0" bet="0" name="${player.name}" dealer="${player.dealer}"></player>
+                `).join('')}
+            </players>
+        </general>
+        <round no="0">
+            <action player="${smallBlind[1]}" cards="" no="1" sum="${smallBlind[2]}" type="1"></action>
+            <action player="${bigBlind[1]}" cards="" no="2" sum="${bigBlind[2]}" type="2"></action>
+        </round>
+     
+        <round no="1">
+            ${actionsOutput}
+          </round>
         <round no="2">
             <cards player="" type="Flop">${flop}</cards>
         </round>
@@ -293,10 +379,12 @@ console.log(roundOutput);
         <round no="4">
             <cards player="" type="River">${river}</cards>
         </round>
-   
     </game>
-    </session>`;
-    return xml;
+</session>`;
+
+console.log(xml);  // Ausgabe der XML
+
+return xml;
 
     }
   </script>
