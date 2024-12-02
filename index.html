@@ -86,26 +86,44 @@
     });
     
     function convertToXml(handHistory) {
-        // Extract relevant information from the hand history
-        const lines = handHistory.split('\n');
-        const handIdMatch = lines[0]?.match(/Hand #(\d+-\d+)/);
-        const dateMatch = lines[0]?.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/);
-        const gameTypeMatch = lines[1]?.match(/Game: (.+)/);
-        const blindsMatch = lines[1]?.match(/Blinds (\d+)\/(\d+)/);
-        const siteMatch = lines[2]?.match(/Site: (.+)/);
-        const tableMatch = lines[3]?.match(/Table: (.+)/);
-        const players = [];
+    // Extract relevant information from the hand history
+    const lines = handHistory.split('\n');
+    const handIdMatch = lines[0]?.match(/Hand #(\d+-\d+)/);
+    const dateMatch = lines[0]?.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/);
+    const gameTypeMatch = lines[1]?.match(/Game: (.+)/);
+    const blindsMatch = lines[1]?.match(/Blinds (\d+)\/(\d+)/);
+    const siteMatch = lines[2]?.match(/Site: (.+)/);
+    const tableMatch = lines[3]?.match(/Table: (.+)/);
+    const players = [];
+
+    // Match for the winner and the pot amount
+    const winnerMatch = lines.find(line => line.includes('wins Pot'));
     
-        if (!handIdMatch || !dateMatch || !gameTypeMatch || !blindsMatch || !siteMatch || !tableMatch) {
-            return 'Error: Invalid hand history format.';
+    if (!handIdMatch || !dateMatch || !gameTypeMatch || !blindsMatch || !siteMatch || !tableMatch) {
+        return 'Error: Invalid hand history format.';
+    }
+
+    const handId = handIdMatch[1];
+    const date = dateMatch[1];
+    const gameType = gameTypeMatch[1];
+    const blinds = blindsMatch;
+    const site = siteMatch[1];
+    const table = tableMatch[1];
+
+    let winner = '';
+    let pot = 0;
+    let handDescription = '';
+
+    if (winnerMatch) {
+        
+        const winnerDetails = winnerMatch.match(/(\S+) wins Pot \((\d+)\)(?: with (.+))?/);
+
+        if (winnerDetails) {
+            winner = winnerDetails[1];
+            pot = parseInt(winnerDetails[2], 10);
+            handDescription = winnerDetails[3];
         }
-    
-        const handId = handIdMatch[1];
-        const date = dateMatch[1];
-        const gameType = gameTypeMatch[1];
-        const blinds = blindsMatch;
-        const site = siteMatch[1];
-        const table = tableMatch[1];
+    }
     
         let playerIndex = 4;
         while (lines[playerIndex] && lines[playerIndex].startsWith('Seat')) {
@@ -119,8 +137,8 @@
             }
             playerIndex++;
         }
-    //DEALER code hier>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    const dealerMatch = lines[playerIndex]?.match(/^(.+?) has the dealer button$/);
+    
+        const dealerMatch = lines[playerIndex]?.match(/^(.+?) has the dealer button$/);
 if (!dealerMatch) {
     console.error("Error: Dealer information not found in line:", lines[playerIndex]);
     return 'Error: Dealer information not found.';
@@ -133,7 +151,9 @@ const playersWithDealer = players.map(player => ({
     ...player,
     dealer: player.name.trim() === dealer.trim() ? '1' : '0' // Vergleiche mit Trim
 }));
-    //end DEALER
+
+
+    
         const smallBlindMatch = lines[playerIndex]?.match(/(.+) posts small blind (\d+)/);
         const bigBlindMatch = lines[playerIndex + 1]?.match(/(.+) posts big blind (\d+)/);
         if (!smallBlindMatch || !bigBlindMatch) {
@@ -176,9 +196,22 @@ while (lines[playerIndex] && !lines[playerIndex].startsWith('** Flop **')) {
 }
 
 
-// Flop Match: Überprüfen, ob eine Flop-Linie existiert
+/// Funktion zum Formatieren der Karten (Großbuchstaben und Umkehren der Buchstaben)
+const formatCard = (card) => {
+    const cardUpper = card.toUpperCase(); // Großbuchstaben
+
+    // Konvertiere T in 10 für Karten mit einer 10
+    if (cardUpper.charAt(0) === 'T') {
+        return 'D10'; // Hier kannst du für alle Karten die von PokerHandReplayer erwartet werden (D10 für 10 der Karo)
+    }
+
+    return cardUpper.charAt(1) + cardUpper.charAt(0); // Buchstaben umkehren
+};
+
+// Flop Parsing
 const flopMatch = lines[playerIndex]?.match(/\*\* Flop \*\* \[(.+)\]/);
-const flop = flopMatch ? flopMatch[1] : ''; // Falls keine Flop-Karten gefunden werden, setze sie auf einen leeren String
+const flop = flopMatch ? flopMatch[1].split(' ').map(formatCard).join(' ') : ''; // Nur Rank, keine Farbe
+
 playerIndex++;
 
 // Turn und River Match-Variablen
@@ -209,10 +242,8 @@ while (playerIndex < lines.length) {
 }
 
 // Falls keine Turn- oder River-Karten gefunden werden, lege sie auf leere Strings
-
-const turn = turnMatch ? turnMatch[1] : 'N/A';
-const river = riverMatch ? riverMatch[1] : 'N/A';
-
+const turn = turnMatch ? turnMatch[1].split(' ').map(formatCard).join(' ') : 'N/A';
+const river = riverMatch ? riverMatch[1].split(' ').map(formatCard).join(' ') : 'N/A';
 
 // Generiere die Ausgabe für jede Runde (Flop, Turn, River)
 let roundNumber = 0;
@@ -223,14 +254,15 @@ const rounds = [
     { no: ++roundNumber, type: 'River', cards: river }
 ];
 
-// Generiere die Ausgabe für jede Runde
-const roundOutput = rounds.map(round => {
-    return `
-        <round no="${round.no}">
-            <cards player="" type="${round.type}">${round.cards || ''}</cards>
-        </round>
-    `;
-}).join('');
+// Ausgabe als XML
+const xmlOutput = rounds.map(round => {
+    return `<round no="${round.no}">
+                <cards player="" type="${round.type}">${round.cards}</cards>
+            </round>`;
+}).join('\n');
+
+// Zeige das XML an
+console.log(xmlOutput);
 
 // Hole Cards Parsing hinzufügen
 const holeCardsStartIndex = lines.findIndex(line => line.startsWith('** Hole Cards **'));
@@ -286,7 +318,7 @@ function parseSummary(lines) {
     const rakeMatch = summaryLines.find(line => line.includes('Rake:')).match(/Rake: (\d+)/);
 
     // Sitzpattern für Spieler und Aktionen.
-    const seatPattern = /^Seat (\d+): (\S+) \(([-+]?\d+)\) \[([^\]]+)\] (Folded on (PreFlop)|Folded on (Flop)|Won without Showdown|Showdown with .*)$/;
+    const seatPattern = /^Seat (\d+): (\S+) \(([-+]?\d+)\) \[([^\]]+)\] (Folded on (PreFlop)|Showdown with .*)$/;
 
     const seatLines = summaryLines.filter(line => seatPattern.test(line));
 
@@ -333,6 +365,9 @@ const actionsOutput = actions.map((action, index) => {
       <cards player="${playerName}" type="Pocket">${playerCards}</cards>
     `;
 }).join('');
+// Funktion zum Formatieren der Karten (Großbuchstaben und Umkehren der Buchstaben)
+
+
 
 
 // Die endgültige XML-Ausgabe
@@ -358,11 +393,10 @@ const xml = `<?xml version="1.0" encoding="utf-8" ?>
     </general>
     <game gamecode="${handId}">
         <general>
-            <startdate>${date}</startdate> 
-            
-            <players>
+            <startdate>${date}</startdate>
+           <players>
         ${playersWithDealer.map(player => `
-            <player seat="${player.seat}" chips="${player.chips}" win="0" bet="0" name="${player.name}" dealer="${player.dealer}"></player>
+            <player seat="${player.seat}" chips="${player.chips}" win="${pot}" bet="0" name="${player.name}" dealer="${player.dealer}"></player>
         `).join('')}
     </players>
         </general>
@@ -389,7 +423,6 @@ const xml = `<?xml version="1.0" encoding="utf-8" ?>
 console.log(xml);  // Ausgabe der XML
 
 return xml;
-
 
     }
   </script>
