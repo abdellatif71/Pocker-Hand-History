@@ -122,6 +122,7 @@
             winner = winnerDetails[1];
             pot = parseInt(winnerDetails[2], 10);
             handDescription = winnerDetails[3];
+            console.log(winner);
         }
     }
     
@@ -396,7 +397,7 @@ const xml = `<?xml version="1.0" encoding="utf-8" ?>
             <startdate>${date}</startdate>
            <players>
         ${playersWithDealer.map(player => `
-            <player seat="${player.seat}" chips="${player.chips}" win="${pot}" bet="0" name="${player.name}" dealer="${player.dealer}"></player>
+            <player seat="${player.seat}" chips="${player.chips}"  win="${player.name === winner ? pot : 0}" bet="0" name="${player.name}" dealer="${player.dealer}"></player>
         `).join('')}
     </players>
         </general>
