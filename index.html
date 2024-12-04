@@ -5,41 +5,123 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hand History to XML Converter</title>
   <style>
+    /* Allgemeine Stile */
     body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f8ff;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
+
     .container {
-      max-width: 600px;
-      margin: 0 auto;
+      background: #ffffff;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 500px;
+      width: 90%;
     }
+
+    h1 {
+      font-size: 1.8rem;
+      color: #444;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
     textarea {
       width: 100%;
       height: 150px;
-      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+      font-size: 16px;
+      resize: none;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+      transition: border 0.3s ease;
     }
+
+    textarea:focus {
+      border-color: #007bff;
+      outline: none;
+    }
+
     .buttons {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 10px;
+      gap: 10px;
+      margin-top: 10px;
     }
-    .buttons button {
-      padding: 10px 20px;
+
+    .buttons button,
+    #copyButton {
+      flex: 1;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      padding: 10px 15px;
       font-size: 16px;
       cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s ease;
     }
+
+    .buttons button:hover,
+    #copyButton:hover {
+      background: #0056b3;
+      transform: translateY(-2px);
+    }
+
+    .buttons button:active,
+    #copyButton:active {
+      transform: translateY(0);
+    }
+
     #xmlOutput {
+      margin-top: 15px;
+      height: 150px; /* Begrenzte Höhe */
+      overflow-y: auto; /* Scrollbar hinzufügen */
       white-space: pre-wrap;
-      background-color: #f4f4f4;
-      padding: 10px;
-      border: 1px solid #ccc;
-      margin-top: 10px;
+      background-color: #f9f9f9;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 14px;
+      color: #777;
+    }
+
+    footer span {
+      font-weight: bold;
+      color: #333;
+    }
+
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 1.5rem;
+      }
+      .buttons button {
+        font-size: 14px;
+        padding: 8px 12px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Hand History to XML Converter</h1>
+    <h1>Poker-Hand-History to XML Converter</h1>
     <textarea id="handHistory" placeholder="Enter Hand History"></textarea>
     <div class="buttons">
       <button id="clearButton">Löschen</button>
@@ -48,6 +130,9 @@
     <div id="xmlOutput"></div>
     <button id="copyButton">Kopieren</button>
   </div>
+  <footer>
+    Erstellt von <span>Abouelabbes Abdellatif</span>, <span>Software Engineer</span>
+  </footer>
 
   <script>
     // Clear input
@@ -154,23 +239,30 @@ const playersWithDealer = players.map(player => ({
 }));
 
 
-    
-        const smallBlindMatch = lines[playerIndex]?.match(/(.+) posts small blind (\d+)/);
-        const bigBlindMatch = lines[playerIndex + 1]?.match(/(.+) posts big blind (\d+)/);
-        if (!smallBlindMatch || !bigBlindMatch) {
-            return 'Error: Blind information not found.';
-        }
-        const smallBlind = smallBlindMatch;
-        const bigBlind = bigBlindMatch;
-        playerIndex += 2;
-    
-        const holeCardsMatch = lines[playerIndex]?.match(/\*\* Hole Cards \*\* \[(\d+) players\]/);
-        if (!holeCardsMatch) {
-            return 'Error: Hole cards information not found.';
-        }
-        const holeCards = holeCardsMatch[1];
-        playerIndex++;
+const smallBlindMatch = lines[playerIndex]?.match(/(.+) posts small blind (\d+)/);
+const bigBlindMatch = lines[playerIndex + 1]?.match(/(.+) posts big blind (\d+)/);
 
+let smallBlind = "";
+let bigBlind = "";
+
+if (!smallBlindMatch || !bigBlindMatch) {
+    smallBlind = "";
+    bigBlind = "";
+} else {
+    smallBlind = smallBlindMatch;
+    bigBlind = bigBlindMatch;
+    playerIndex += 2;
+}
+
+
+    
+const holeCardsMatch = lines[playerIndex]?.match(/\*\* Hole Cards \*\* \[(\d+) players\]/);
+if (!holeCardsMatch) {
+    console.log('Error: Hole cards information not found.');
+} else {
+    const holeCards = parseInt(holeCardsMatch[1], 10);
+    console.log('Hole cards players count:', holeCards);
+}
         //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
           // Funktion zur Bestimmung des Aktionstyps hinzufügen
     function getActionType(action) {
@@ -211,7 +303,7 @@ const formatCard = (card) => {
 
 // Flop Parsing
 const flopMatch = lines[playerIndex]?.match(/\*\* Flop \*\* \[(.+)\]/);
-const flop = flopMatch ? flopMatch[1].split(' ').map(formatCard).join(' ') : ''; // Nur Rank, keine Farbe
+const flop = flopMatch ? flopMatch[1].split(' ').map(formatCard).join(' ') : 'N/A'; // Nur Rank, keine Farbe
 
 playerIndex++;
 
@@ -245,6 +337,7 @@ while (playerIndex < lines.length) {
 // Falls keine Turn- oder River-Karten gefunden werden, lege sie auf leere Strings
 const turn = turnMatch ? turnMatch[1].split(' ').map(formatCard).join(' ') : 'N/A';
 const river = riverMatch ? riverMatch[1].split(' ').map(formatCard).join(' ') : 'N/A';
+
 
 // Generiere die Ausgabe für jede Runde (Flop, Turn, River)
 let roundNumber = 0;
@@ -359,7 +452,7 @@ const actionsOutput = actions.map((action, index) => {
     const playerSeat = seats.find(seat => seat.player === playerName);
     
     // Hole die Karten des Spielers oder setze 'N/A' wenn keine gefunden wurden
-    const playerCards = playerSeat && playerSeat.cards ? playerSeat.cards : 'N/A';
+    const playerCards = playerSeat && playerSeat.cards ? playerSeat.cards : '00 00';
 
     return `
       <action player="${playerName}" no="${index + 1}" sum="€${action.amount}" type="${actionType}"></action>
@@ -395,11 +488,19 @@ const xml = `<?xml version="1.0" encoding="utf-8" ?>
     <game gamecode="${handId}">
         <general>
             <startdate>${date}</startdate>
-           <players>
-        ${playersWithDealer.map(player => `
-            <player seat="${player.seat}" chips="${player.chips}"  win="${player.name === winner ? pot : 0}" bet="0" name="${player.name}" dealer="${player.dealer}"></player>
-        `).join('')}
-    </players>
+   <players>
+    ${playersWithDealer.map(player => {
+        const formattedChips = (player.chips / 100).toFixed(2).replace('.', ',');
+        const formattedWin = (player.name === winner ? (pot / 10).toFixed(2).replace('.', ',') : '0,00');
+        const formattedBet = (player.bet / 10).toFixed(2).replace('.', ',');
+
+        return `
+            <player seat="${player.seat}" chips="€${formattedChips}" win="€${formattedWin}" bet="€0,00" name="${player.name}" dealer="${player.dealer}"></player>
+        `;
+    }).join('')}
+</players>
+
+
         </general>
         <round no="0">
             <action player="${smallBlind[1]}" cards="" no="1" sum="${smallBlind[2]}" type="1"></action>
