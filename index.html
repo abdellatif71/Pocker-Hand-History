@@ -495,7 +495,7 @@ const xml = `<?xml version="1.0" encoding="utf-8" ?>
         const formattedBet = (player.bet / 10).toFixed(2).replace('.', ',');
 
         return `
-            <player seat="${player.seat}" chips="€${formattedChips}" win="€${formattedWin}" bet="€0,00" name="${player.name}" dealer="${player.dealer}"></player>
+            <player seat="${player.name}" chips="€${formattedChips}" win="€${formattedWin}" bet="€0,00" name="${player.name}" dealer="${player.dealer}"></player>
         `;
     }).join('')}
 </players>
@@ -522,7 +522,7 @@ const xml = `<?xml version="1.0" encoding="utf-8" ?>
     </game>
 </session>`;
 
-console.log(xml);  // Ausgabe der XML
+console.log(xml);  
 
 return xml;
 
